@@ -1,62 +1,48 @@
 /**
  * Email Service for NeoBite Restaurant
- * Handles sending emails via EmailJS
+ * Handles sending emails via Backend API (Gmail SMTP)
  */
 
-import emailjs from '@emailjs/browser';
-import { emailTemplates } from './emailTemplates';
-
-// Initialize EmailJS with public key from environment
-const initializeEmailJS = () => {
-  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-  
-  if (!publicKey) {
-    console.warn('EmailJS public key not found in environment variables');
-    return false;
-  }
-  
-  emailjs.init(publicKey);
-  return true;
-};
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 /**
  * Send order confirmation email
  * @param {Object} orderData - Order details
- * @returns {Promise} - EmailJS response
+ * @returns {Promise} - API response
  */
 export const sendOrderConfirmationEmail = async (orderData) => {
   try {
-    // Check if EmailJS is configured
-    if (!import.meta.env.VITE_EMAILJS_SERVICE_ID || 
-        !import.meta.env.VITE_EMAILJS_TEMPLATE_ORDER ||
-        !import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
-      console.warn('EmailJS not configured. Skipping email send.');
+    // Check if API URL is configured
+    if (!API_URL) {
+      console.warn('API URL not configured. Skipping email send.');
       return { success: false, message: 'Email service not configured' };
     }
 
-    // Initialize EmailJS
-    if (!initializeEmailJS()) {
-      return { success: false, message: 'Failed to initialize email service' };
+    console.log('📧 Sending order confirmation email...');
+
+    // Send POST request to backend API
+    const response = await fetch(`${API_URL}/api/send-order-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ orderData }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to send email');
     }
 
-    // Prepare email template data
-    const templateParams = emailTemplates.orderConfirmation(orderData);
-
-    // Send email
-    const response = await emailjs.send(
-      import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      import.meta.env.VITE_EMAILJS_TEMPLATE_ORDER,
-      templateParams
-    );
-
-    console.log('✅ Order confirmation email sent successfully:', response);
-    return { success: true, message: 'Order confirmation email sent', response };
+    console.log('✅ Order confirmation email sent successfully:', data);
+    return { success: true, message: 'Order confirmation email sent', data };
 
   } catch (error) {
     console.error('❌ Failed to send order confirmation email:', error);
     return { 
       success: false, 
-      message: error.text || 'Failed to send email',
+      message: error.message || 'Failed to send email',
       error 
     };
   }
@@ -65,41 +51,41 @@ export const sendOrderConfirmationEmail = async (orderData) => {
 /**
  * Send booking confirmation email
  * @param {Object} bookingData - Booking details
- * @returns {Promise} - EmailJS response
+ * @returns {Promise} - API response
  */
 export const sendBookingConfirmationEmail = async (bookingData) => {
   try {
-    // Check if EmailJS is configured
-    if (!import.meta.env.VITE_EMAILJS_SERVICE_ID || 
-        !import.meta.env.VITE_EMAILJS_TEMPLATE_BOOKING ||
-        !import.meta.env.VITE_EMAILJS_PUBLIC_KEY) {
-      console.warn('EmailJS not configured. Skipping email send.');
+    // Check if API URL is configured
+    if (!API_URL) {
+      console.warn('API URL not configured. Skipping email send.');
       return { success: false, message: 'Email service not configured' };
     }
 
-    // Initialize EmailJS
-    if (!initializeEmailJS()) {
-      return { success: false, message: 'Failed to initialize email service' };
+    console.log('📧 Sending booking confirmation email...');
+
+    // Send POST request to backend API
+    const response = await fetch(`${API_URL}/api/send-booking-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ bookingData }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to send email');
     }
 
-    // Prepare email template data
-    const templateParams = emailTemplates.bookingConfirmation(bookingData);
-
-    // Send email
-    const response = await emailjs.send(
-      import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      import.meta.env.VITE_EMAILJS_TEMPLATE_BOOKING,
-      templateParams
-    );
-
-    console.log('✅ Booking confirmation email sent successfully:', response);
-    return { success: true, message: 'Booking confirmation email sent', response };
+    console.log('✅ Booking confirmation email sent successfully:', data);
+    return { success: true, message: 'Booking confirmation email sent', data };
 
   } catch (error) {
     console.error('❌ Failed to send booking confirmation email:', error);
     return { 
       success: false, 
-      message: error.text || 'Failed to send email',
+      message: error.message || 'Failed to send email',
       error 
     };
   }
@@ -110,10 +96,20 @@ export const sendBookingConfirmationEmail = async (bookingData) => {
  * @returns {boolean}
  */
 export const isEmailServiceConfigured = () => {
-  return !!(
-    import.meta.env.VITE_EMAILJS_SERVICE_ID &&
-    import.meta.env.VITE_EMAILJS_PUBLIC_KEY &&
-    (import.meta.env.VITE_EMAILJS_TEMPLATE_ORDER || 
-     import.meta.env.VITE_EMAILJS_TEMPLATE_BOOKING)
-  );
+  return !!API_URL;
+};
+
+/**
+ * Test email service connection
+ * @returns {Promise} - Health check response
+ */
+export const testEmailService = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/health`);
+    const data = await response.json();
+    return { success: response.ok, data };
+  } catch (error) {
+    console.error('❌ Email service health check failed:', error);
+    return { success: false, error: error.message };
+  }
 };

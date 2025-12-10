@@ -1,0 +1,203 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                   📧 GMAIL SMTP QUICK REFERENCE CARD                       ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🚀 QUICK START (Do This Now!)                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  1. Get App Password
+     → https://myaccount.google.com/apppasswords
+     → Enable 2FA first
+     → Create for "Mail" → "Other"
+     → Copy 16-char password (no spaces)
+
+  2. Edit .env file
+     GMAIL_USER=youremail@gmail.com
+     GMAIL_APP_PASSWORD=abcdefghijklmnop
+
+  3. Start Backend (Terminal 1)
+     npm run server
+
+  4. Start Frontend (Terminal 2)
+     npm run dev
+
+  5. Test
+     → http://localhost:3001/api/health
+     → Place order/booking
+     → Check email inbox ✅
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📁 FILES CHANGED                                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  NEW FILES:
+  ✨ server.js                     Backend with Gmail SMTP
+  ✨ GMAIL_SMTP_SETUP.md            Full setup guide
+  ✨ QUICKSTART_GMAIL.md            Quick instructions
+  ✨ ARCHITECTURE.md                System design docs
+  ✨ MIGRATION_SUMMARY.md           All changes overview
+
+  MODIFIED:
+  🔄 src/emailService.js            Now calls backend API
+  🔄 package.json                   Added dependencies
+  🔄 .env                           Gmail config
+  🔄 .env.example                   Updated template
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🔌 API ENDPOINTS                                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  GET  /api/health                  Health check
+  POST /api/send-order-email        Send order confirmation
+  POST /api/send-booking-email      Send booking confirmation
+
+  Base URL: http://localhost:3001
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🌐 PORTS                                                                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Backend:  http://localhost:3001   (npm run server)
+  Frontend: http://localhost:5173   (npm run dev)
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ⚙️ ENVIRONMENT VARIABLES (.env)                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  BACKEND:
+  GMAIL_USER=your-email@gmail.com
+  GMAIL_APP_PASSWORD=your-16-char-password
+  PORT=3001
+
+  FRONTEND:
+  VITE_API_URL=http://localhost:3001
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🐛 TROUBLESHOOTING                                                      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  ❌ "Invalid login"
+     → Use APP PASSWORD not regular Gmail password
+
+  ❌ "Connection refused" / CORS error
+     → Start backend server: npm run server
+
+  ❌ Backend won't start
+     → Check .env file exists with GMAIL_USER and GMAIL_APP_PASSWORD
+
+  ❌ No emails received
+     → Check spam folder
+     → Verify email address is correct
+     → Check backend console for errors
+
+  ❌ "Gmail credentials not configured"
+     → Update .env with your actual Gmail email and app password
+     → Restart backend server
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📊 BEFORE vs AFTER                                                      │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  BEFORE (EmailJS)          AFTER (Gmail SMTP)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3rd party service    →    Your Gmail account
+  ~200 emails/month    →    500 emails/day
+  Limited templates    →    Full HTML control
+  Client-side only     →    Secure backend
+  Monthly fees         →    Completely FREE
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📧 EMAIL FEATURES                                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  ORDER CONFIRMATION:
+  • Beautiful gradient header
+  • Detailed items table
+  • Order number & total
+  • Customer info
+  • Professional footer
+
+  BOOKING CONFIRMATION:
+  • Reservation details
+  • Date/time/guests
+  • Special requests
+  • Important reminders
+  • Contact information
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🔒 SECURITY                                                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  ✅ Credentials in backend (not frontend)
+  ✅ App Password (not real Gmail password)
+  ✅ Environment variables
+  ✅ .env not committed to Git
+  ✅ CORS protection enabled
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📚 DOCUMENTATION                                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  GMAIL_SMTP_SETUP.md      → Detailed setup & troubleshooting
+  QUICKSTART_GMAIL.md      → 3-minute quick start
+  ARCHITECTURE.md          → Technical architecture
+  MIGRATION_SUMMARY.md     → All changes overview
+  REFERENCE_CARD.txt       → This file (quick reference)
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📈 SCALING                                                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  < 500/day        Gmail (FREE)                 ✅ Current
+  500-10K/day      Google Workspace ($6/mo)
+  10K-100K/day     SendGrid, AWS SES
+  > 100K/day       Dedicated infrastructure
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ✅ CHECKLIST                                                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  [x] Dependencies installed (npm install)
+  [x] Backend server created (server.js)
+  [x] Email service updated
+  [x] Documentation created
+  [ ] Gmail App Password obtained          ← DO THIS NOW!
+  [ ] .env file updated                    ← DO THIS NOW!
+  [ ] Backend server running               ← DO THIS NOW!
+  [ ] Frontend running                     ← DO THIS NOW!
+  [ ] Email test successful                ← DO THIS NOW!
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🎯 PRODUCTION DEPLOYMENT                                                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  1. Deploy backend to: Heroku, Railway, AWS, etc.
+  2. Deploy frontend to: Vercel, Netlify, etc.
+  3. Update .env:
+     VITE_API_URL=https://your-backend-domain.com
+  4. Use HTTPS for both
+  5. Set env vars in hosting platform
+  6. Test thoroughly!
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 💡 TIPS                                                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  • Keep both terminals open (backend + frontend)
+  • Test with your own email first
+  • Check spam folder if emails don't arrive
+  • Monitor Gmail's daily sending limit
+  • Backend must be running for emails to work
+  • Health check: http://localhost:3001/api/health
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🆘 NEED HELP?                                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  See: GMAIL_SMTP_SETUP.md for detailed help
+  Or:  QUICKSTART_GMAIL.md for quick reference
+
+╔════════════════════════════════════════════════════════════════════════╗
+║  🚀 Ready? Update .env → npm run server → npm run dev → Test email!   ║
+╚════════════════════════════════════════════════════════════════════════╝

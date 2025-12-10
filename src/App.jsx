@@ -7,13 +7,13 @@ import './index.css';
 import './App.css';
 import './cart.css';
 
-import { menuItems, menuCategories } from './menuData';
+import { menuCategories } from './menuData';
 import { testimonials, stats } from './testimonialsData';
 import StripePaymentForm from './StripePaymentForm';
 import { sendOrderConfirmationEmail, sendBookingConfirmationEmail } from './emailService';
 import { generateOrderId, calculateDeliveryTime, formatCurrency } from './utils/orderUtils';
 import { validateForm } from './utils/validation';
-import { saveOrder } from './utils/storageUtils';
+
 import Chatbot from './components/Chatbot';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
@@ -36,6 +36,30 @@ function App() {
   const [processing, setProcessing] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [menuItems, setMenuItems] = useState([]);
+  const [loadingMenu, setLoadingMenu] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [visibleItems, setVisibleItems] = useState(12); // Initially show 12 items
+  const itemsPerLoad = 12; // Load 12 more items each time
+
+  // Fetch menu from API
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${apiUrl}/api/menu`);
+        if (!response.ok) throw new Error('Failed to fetch menu');
+        const data = await response.json();
+        setMenuItems(data);
+      } catch (error) {
+        console.error('Error loading menu:', error);
+      } finally {
+        setLoadingMenu(false);
+      }
+    };
+
+    fetchMenu();
+  }, []);
   
   // Check for admin URL parameter on load
   useEffect(() => {
@@ -98,8 +122,35 @@ function App() {
     });
   };
 
-  const handleBookingSubmit = (e) => {
+  const handleBookingSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prepare booking data for email
+    const bookingData = {
+      name: bookingForm.name,
+      email: bookingForm.email,
+      phone: bookingForm.phone,
+      date: bookingForm.date,
+      time: bookingForm.time,
+      guests: bookingForm.guests,
+      specialRequests: bookingForm.requests
+    };
+
+    // Send confirmation email
+    try {
+      const emailResult = await sendBookingConfirmationEmail(bookingData);
+      
+      if (emailResult.success) {
+        console.log('✅ Booking confirmation email sent to:', bookingData.email);
+      } else {
+        console.warn('⚠️ Booking successful but email failed:', emailResult.message);
+        // Still show booking confirmation even if email fails
+      }
+    } catch (error) {
+      console.error('❌ Email sending error:', error);
+      // Don't block booking confirmation if email fails
+    }
+
     setConfirmedBooking({ ...bookingForm });
     setShowBookingConfirm(true);
     setBookingForm({
@@ -165,6 +216,22 @@ function App() {
     });
   };
 
+  const saveOrderToDB = async (orderData) => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const response = await fetch(`${apiUrl}/api/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save order to database');
+    }
+    return await response.json();
+  };
+
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     
@@ -198,50 +265,68 @@ function App() {
         estimatedDelivery
       };
 
-      // Save to local storage
-      // Save order to localStorage
-      saveOrder(orderDetails);
-
-      // Send confirmation email using new email service
+      // Save order to MongoDB via API
       try {
+        await saveOrderToDB(orderDetails);
+
+        // Send confirmation email using existing service
         const emailResult = await sendOrderConfirmationEmail(orderDetails);
         
         if (emailResult.success) {
           console.log('✅ Order confirmation email sent to:', orderDetails.customerEmail);
         } else {
           console.warn('⚠️ Order successful but email failed:', emailResult.message);
-          // Still complete the order even if email fails
         }
+
+        setTimeout(() => {
+          setProcessing(false);
+          setShowCheckout(false);
+          setOrderComplete(true);
+          setCart([]);
+          setCheckoutForm({
+            name: '',
+            email: '',
+            phone: '',
+            address: '',
+            city: '',
+            zipCode: '',
+            accountHolderName: '',
+            bankName: '',
+            accountNumber: '',
+            routingNumber: ''
+          });
+        }, 1500);
+
       } catch (error) {
-        console.error('❌ Email sending error:', error);
-        // Don't block order completion if email fails
-      }
-      
-      setTimeout(() => {
+        console.error('❌ Order processing error:', error);
+        alert('Failed to place order. Please try again.');
         setProcessing(false);
-        setShowCheckout(false);
-        setOrderComplete(true);
-        setCart([]);
-        setCheckoutForm({
-          name: '',
-          email: '',
-          phone: '',
-          address: '',
-          city: '',
-          zipCode: '',
-          accountHolderName: '',
-          bankName: '',
-          accountNumber: '',
-          routingNumber: ''
-        });
-      }, 1500);
+      }
     }
     // Stripe and PayPal are handled by their respective components
   };
 
-  const filteredItems = activeCategory === "All" 
-    ? menuItems 
-    : menuItems.filter(item => item.category === activeCategory);
+  // Filter by category and search
+  const filteredItems = menuItems.filter(item => {
+    const matchesCategory = activeCategory === "All" || item.category === activeCategory;
+    const matchesSearch = searchQuery === '' || 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Load More logic
+  const displayedItems = filteredItems.slice(0, visibleItems);
+  const hasMore = visibleItems < filteredItems.length;
+
+  // Reset visible items when category or search changes
+  useEffect(() => {
+    setVisibleItems(12);
+  }, [activeCategory, searchQuery]);
+
+  const loadMore = () => {
+    setVisibleItems(prev => prev + itemsPerLoad);
+  };
 
   if (showAdmin) {
     return isAdminAuthenticated ? (
@@ -330,6 +415,30 @@ function App() {
           <p>Curated selection of molecular masterpieces</p>
         </div>
         
+        {/* Search Bar */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+          <input
+            type="text"
+            placeholder="🔍 Search menu items..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              padding: '0.75rem 1.5rem',
+              width: '100%',
+              maxWidth: '500px',
+              borderRadius: '50px',
+              border: '2px solid rgba(255, 0, 255, 0.3)',
+              background: 'rgba(0, 0, 0, 0.5)',
+              color: 'white',
+              fontSize: '1rem',
+              outline: 'none',
+              transition: 'all 0.3s ease'
+            }}
+            onFocus={(e) => e.target.style.borderColor = 'rgba(255, 0, 255, 0.8)'}
+            onBlur={(e) => e.target.style.borderColor = 'rgba(255, 0, 255, 0.3)'}
+          />
+        </div>
+
         <div className="category-tabs">
           {menuCategories.map(category => (
             <button 
@@ -343,7 +452,15 @@ function App() {
         </div>
 
         <div className="menu-grid">
-          {filteredItems.map(item => (
+          {loadingMenu ? (
+            <div className="loading-spinner" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: 'white' }}>
+              Loading menu...
+            </div>
+          ) : displayedItems.length === 0 ? (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', color: 'white' }}>
+              No items found. Try a different search or category.
+            </div>
+          ) : displayedItems.map(item => (
             <div key={item.id} className="menu-card" onClick={() => handleProductClick(item)}>
               <div className="card-image">
                 <img src={item.image} alt={item.name} />
@@ -371,6 +488,66 @@ function App() {
             </div>
           ))}
         </div>
+        
+        {/* Load More Button */}
+        {!loadingMenu && hasMore && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            marginTop: '3rem',
+            marginBottom: '2rem'
+          }}>
+            <button
+              onClick={loadMore}
+              style={{
+                padding: '1rem 3rem',
+                borderRadius: '50px',
+                border: '2px solid rgba(255, 0, 255, 0.5)',
+                background: 'linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(0, 255, 255, 0.2))',
+                backdropFilter: 'blur(10px)',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                boxShadow: '0 4px 15px rgba(255, 0, 255, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-3px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(255, 0, 255, 0.5)';
+                e.target.style.borderColor = 'rgba(255, 0, 255, 0.8)';
+                e.target.style.background = 'linear-gradient(135deg, rgba(255, 0, 255, 0.4), rgba(0, 255, 255, 0.4))';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(255, 0, 255, 0.3)';
+                e.target.style.borderColor = 'rgba(255, 0, 255, 0.5)';
+                e.target.style.background = 'linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(0, 255, 255, 0.2))';
+              }}
+            >
+              Load More ✨
+            </button>
+          </div>
+        )}
+        
+        {/* All Items Loaded Message */}
+        {!loadingMenu && !hasMore && filteredItems.length > 12 && (
+          <div style={{
+            textAlign: 'center',
+            marginTop: '3rem',
+            marginBottom: '2rem',
+            color: 'rgba(255, 255, 255, 0.6)',
+            fontSize: '1rem',
+            padding: '1rem',
+            background: 'rgba(0, 255, 255, 0.1)',
+            borderRadius: '12px',
+            border: '1px solid rgba(0, 255, 255, 0.3)'
+          }}>
+            ✨ All {filteredItems.length} items loaded!
+          </div>
+        )}
       </section>
 
       {/* Product Detail Modal */}
@@ -725,8 +902,14 @@ function App() {
                           estimatedDelivery
                         };
 
-                        // Save to local storage
-                        saveOrder(orderDetails);
+                        // Save to database
+                        try {
+                          await saveOrderToDB(orderDetails);
+                        } catch (err) {
+                          console.error('Failed to save Stripe order:', err);
+                          // Continue to email/success even if DB save fails? 
+                          // Ideally we should alert user, but for now log it.
+                        }
 
                         // Send confirmation email
                         await sendOrderConfirmationEmail(orderDetails);
@@ -795,8 +978,12 @@ function App() {
                               estimatedDelivery
                             };
 
-                            // Save to local storage
-                            saveOrder(orderDetails);
+                            // Save to database
+                            try {
+                              await saveOrderToDB(orderDetails);
+                            } catch (err) {
+                              console.error('Failed to save PayPal order:', err);
+                            }
 
                             // Send confirmation email
                             await sendOrderConfirmationEmail(orderDetails);
