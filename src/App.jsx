@@ -257,7 +257,8 @@ function App() {
         orderId,
         customerEmail: checkoutForm.email,
         customerName: checkoutForm.name,
-        total: formattedTotal,
+        phone: checkoutForm.phone,
+        total: totalAmount, // Send as number for database
         items: cart,
         address: `${checkoutForm.address}, ${checkoutForm.city} ${checkoutForm.zipCode}`,
         paymentMethod: 'Cash on Delivery',
@@ -265,15 +266,21 @@ function App() {
         estimatedDelivery
       };
 
+      // Prepare email data with formatted total
+      const emailData = {
+        ...orderDetails,
+        total: formattedTotal // Use formatted string for email
+      };
+
       // Save order to MongoDB via API
       try {
         await saveOrderToDB(orderDetails);
 
         // Send confirmation email using existing service
-        const emailResult = await sendOrderConfirmationEmail(orderDetails);
+        const emailResult = await sendOrderConfirmationEmail(emailData);
         
         if (emailResult.success) {
-          console.log('✅ Order confirmation email sent to:', orderDetails.customerEmail);
+          console.log('✅ Order confirmation email sent to:', emailData.customerEmail);
         } else {
           console.warn('⚠️ Order successful but email failed:', emailResult.message);
         }
